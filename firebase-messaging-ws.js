@@ -4,8 +4,8 @@
  */
 
 // Importa os módulos do Firebase necessários
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/11.6.1/firebase-messaging.js');
 
 // Configuração do seu projeto Firebase (SUBSTITUA ESTE OBJETO!)
 const firebaseConfig = {
@@ -24,6 +24,7 @@ const app = firebase.initializeApp(firebaseConfig);
 
 // Obtém a instância do Firebase Messaging
 const messaging = firebase.messaging();
+messaging.useServiceWorker(new URL('https://h4rleyk.github.io/TOKEN-FCM/firebase-messaging-sw.js'));
 
 // ------------------------------------------------------------------
 // Lógica de Notificação

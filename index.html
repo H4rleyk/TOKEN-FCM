@@ -61,7 +61,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-messaging.js";
 
-        // --- ATENÇÃO CRÍTICA: SUBSTITUA O JSON ABAIXO ---
     const firebaseConfig = {
           apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
           authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
@@ -121,9 +120,7 @@
                     updateStatus("ERRO: Service Workers não suportados neste ambiente/navegador.", 'error');
                     return;
                 }
-                const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js', {
-                    scope: '/TOKEN-FCM/', 
-                });
+
                 updateStatus("2/3: Obtendo serviço de Mensagens...");
                 const messaging = getMessaging(app);
 
@@ -135,7 +132,6 @@
                     
                     const currentToken = await getToken(messaging, { 
                         vapidKey: VAPID_KEY,
-                        serviceWorkerRegistration: registration
                     });
 
                     if (currentToken) {
