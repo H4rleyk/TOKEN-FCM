@@ -32,17 +32,18 @@
                 ✅ Copiado!
             </div>
 
-            <div id="debug" class="p-3 bg-gray-100 rounded-lg text-xs font-mono">
+            <div id="debug" class="p-3 bg-gray-100 rounded-lg text-xs font-mono overflow-auto max-h-40">
                 <strong>Debug:</strong><br>
-                <span id="debug-text">Carregando...</span>
+                <span id="debug-text"></span>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
+    <!-- IMPORTANTE: Usar versão 9.22.1 COMPAT para ter mais controle -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js"></script>
 
+    <script>
         const config = {
             apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
             authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
@@ -67,56 +68,55 @@
 
         async function init() {
             try {
-                // MOSTRA TODAS AS URLS IMPORTANTES
-                const baseUrl = window.location.origin;
                 const currentPath = window.location.pathname;
-                const swPath = `${currentPath}firebase-messaging-sw.js`;
+                const swFullPath = `${currentPath}firebase-messaging-sw.js`;
                 
-                debug(`Base URL: ${baseUrl}`);
-                debug(`Current Path: ${currentPath}`);
-                debug(`SW Path: ${swPath}`);
+                debug(`🌐 URL atual: ${window.location.href}`);
+                debug(`📂 Caminho SW: ${swFullPath}`);
 
-                status.textContent = '1/6: Inicializando...';
-                const app = initializeApp(config);
-                
-                status.textContent = '2/6: Verificando suporte...';
+                status.textContent = '1/5: Verificando suporte...';
                 if (!('serviceWorker' in navigator)) throw new Error('Sem suporte a SW');
                 if (!('Notification' in window)) throw new Error('Sem suporte a notificações');
+                debug('✅ Suporte OK');
 
-                // DESREGISTRA TODOS OS SWs ANTIGOS
-                status.textContent = '3/6: Limpando Service Workers antigos...';
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                debug(`${registrations.length} SWs encontrados`);
-                for (const reg of registrations) {
+                // CRÍTICO: Registrar o SW MANUALMENTE antes do Firebase
+                status.textContent = '2/5: Registrando Service Worker...';
+                debug(`🔧 Registrando SW em: ${swFullPath}`);
+                
+                // Remove SWs antigos
+                const oldRegs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of oldRegs) {
                     await reg.unregister();
-                    debug(`SW removido: ${reg.scope}`);
+                    debug(`🗑️ SW removido: ${reg.scope}`);
                 }
 
-                // REGISTRA O SW NO CAMINHO RELATIVO
-                status.textContent = '4/6: Registrando novo SW...';
-                debug(`Tentando registrar: ${swPath}`);
-                
-                const registration = await navigator.serviceWorker.register(swPath, {
+                const registration = await navigator.serviceWorker.register(swFullPath, {
                     scope: currentPath,
                     updateViaCache: 'none'
                 });
                 
                 debug(`✅ SW registrado! Scope: ${registration.scope}`);
-                
                 await navigator.serviceWorker.ready;
-                debug('✅ SW pronto!');
+                debug('✅ SW ativo e pronto!');
 
-                status.textContent = '5/6: Solicitando permissão...';
+                status.textContent = '3/5: Inicializando Firebase...';
+                firebase.initializeApp(config);
+                debug('✅ Firebase inicializado');
+
+                status.textContent = '4/5: Solicitando permissão...';
                 const perm = await Notification.requestPermission();
                 if (perm !== 'granted') throw new Error('Permissão negada');
                 debug('✅ Permissão concedida');
 
-                status.textContent = '6/6: Gerando token...';
-                const messaging = getMessaging(app);
-                const t = await getToken(messaging, { 
-                    vapidKey: VAPID,
-                    serviceWorkerRegistration: registration
-                });
+                status.textContent = '5/5: Gerando token...';
+                
+                // Usa a API compat que respeita o SW já registrado
+                const messaging = firebase.messaging();
+                
+                // Passa o registration explicitamente
+                messaging.useServiceWorker(registration);
+                
+                const t = await messaging.getToken({ vapidKey: VAPID });
 
                 if (t) {
                     token.value = t;
@@ -133,17 +133,18 @@
                         success.classList.remove('hidden');
                         setTimeout(() => success.classList.add('hidden'), 2000);
                     };
-                    status.textContent = '✅ TOKEN GERADO!';
+                    status.textContent = '✅ TOKEN GERADO COM SUCESSO!';
                     status.className = 'p-4 mb-4 text-sm bg-green-100 text-green-800 rounded-lg';
-                    debug('✅ Token obtido com sucesso!');
+                    debug('✅ Token obtido!');
+                    debug(`Token: ${t.substring(0, 50)}...`);
                 } else {
-                    throw new Error('Token vazio');
+                    throw new Error('Token vazio retornado');
                 }
             } catch (e) {
                 status.textContent = `❌ ERRO: ${e.message}`;
                 status.className = 'p-4 mb-4 text-sm bg-red-100 text-red-800 rounded-lg';
                 debug(`❌ ERRO: ${e.message}`);
-                debug(`Stack: ${e.stack}`);
+                if (e.stack) debug(`Stack: ${e.stack.substring(0, 200)}`);
                 console.error('Erro completo:', e);
             }
         }
