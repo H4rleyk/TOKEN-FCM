@@ -121,7 +121,9 @@
                     updateStatus("ERRO: Service Workers não suportados neste ambiente/navegador.", 'error');
                     return;
                 }
-
+                const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js', {
+                    scope: '/TOKEN-FCM/', 
+                });
                 updateStatus("2/3: Obtendo serviço de Mensagens...");
                 const messaging = getMessaging(app);
 
@@ -132,7 +134,8 @@
                     updateStatus("Permissão concedida. Buscando token...");
                     
                     const currentToken = await getToken(messaging, { 
-                        vapidKey: VAPID_KEY 
+                        vapidKey: VAPID_KEY,
+                        serviceWorkerRegistration: registration
                     });
 
                     if (currentToken) {
