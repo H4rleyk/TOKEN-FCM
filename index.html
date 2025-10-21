@@ -3,59 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coletor de Token FCM</title>
+    <title>Coletor FCM</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-    </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4 bg-gray-100">
 
-    <div id="app-container" class="w-full max-w-xl bg-white shadow-2xl rounded-xl p-6 md:p-8">
-        <h1 class="text-3xl font-extrabold text-gray-800 mb-2 text-center">
-            <svg class="w-8 h-8 inline-block text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
-                </path>
-            </svg>
-            Coletor FCM
+    <div class="w-full max-w-xl bg-white shadow-2xl rounded-xl p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">
+            🔔 Coletor de Token FCM
         </h1>
-        <p class="text-gray-500 text-center mb-6">
-            Obtenha e copie o token para teste de push notifications.
-        </p>
 
-        <div id="status-message" class="p-3 mb-4 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hidden">
-            Status: Iniciando...
+        <div id="status" class="p-4 mb-4 text-sm bg-blue-100 text-blue-800 rounded-lg">
+            Aguardando...
         </div>
 
         <div class="space-y-4">
-            <label for="fcm-token" class="block text-sm font-medium text-gray-700">Token FCM:</label>
-            <textarea id="fcm-token" readonly rows="4" 
-                class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 break-all font-mono text-xs" 
-                placeholder="Aguardando token..."></textarea>
+            <label class="block text-sm font-medium text-gray-700">Token FCM:</label>
+            <textarea id="token" readonly rows="5" 
+                class="w-full p-3 border rounded-lg bg-gray-50 text-xs font-mono"
+                placeholder="Token aparecerá aqui..."></textarea>
 
-            <button id="copy-button" 
-                class="w-full flex items-center justify-center px-5 py-3 text-base font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed" 
-                disabled>
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m-3 9">
-                    </path>
-                </svg>
+            <button id="copy" disabled
+                class="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
                 Copiar Token
             </button>
-            
-            <div id="copy-success" class="mt-2 p-3 text-sm font-medium text-green-700 bg-green-100 rounded-lg hidden text-center">
-                ✅ Token copiado com sucesso!
-            </div>
 
-            <div id="debug-info" class="mt-4 p-3 text-xs font-mono text-gray-600 bg-gray-100 rounded-lg hidden">
-                <strong>Debug Info:</strong><br>
-                <span id="debug-text"></span>
+            <div id="success" class="hidden p-3 bg-green-100 text-green-800 rounded-lg text-center">
+                ✅ Copiado!
             </div>
         </div>
     </div>
@@ -64,110 +38,60 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
 
-        const firebaseConfig = {
+        const config = {
             apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
             authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
             projectId: "aqui-na-feira-4afd5",
             storageBucket: "aqui-na-feira-4afd5.firebasestorage.app",
             messagingSenderId: "997997717655",
-            appId: "1:997997717655:web:476e8272da6d65ddf7a1d2",
-            measurementId: "G-ZFJBGCEZVD"
+            appId: "1:997997717655:web:476e8272da6d65ddf7a1d2"
         };
         
-        const VAPID_KEY = "BBt7NXjEBXBxeZ2N_NdBOixxaLUtP2qgHwz65cIO-OFqI4UeZDnAU7jdxGAaamPloS2quvxorN7ZXZvbIMpmiK8";
+        const VAPID = "BBt7NXjEBXBxeZ2N_NdBOixxaLUtP2qgHwz65cIO-OFqI4UeZDnAU7jdxGAaamPloS2quvxorN7ZXZvbIMpmiK8";
 
-        const tokenElement = document.getElementById('fcm-token');
-        const statusElement = document.getElementById('status-message');
-        const copyButton = document.getElementById('copy-button');
-        const copySuccess = document.getElementById('copy-success');
-        const debugInfo = document.getElementById('debug-info');
-        const debugText = document.getElementById('debug-text');
+        const status = document.getElementById('status');
+        const token = document.getElementById('token');
+        const copy = document.getElementById('copy');
+        const success = document.getElementById('success');
 
-        function showDebug(info) {
-            debugText.innerHTML = info;
-            debugInfo.classList.remove('hidden');
-        }
-
-        function updateStatus(message, type = 'info') {
-            statusElement.textContent = `Status: ${message}`;
-            statusElement.className = `p-3 mb-4 text-sm font-medium rounded-lg ${
-                type === 'error' ? 'text-red-700 bg-red-100' : 'text-blue-700 bg-blue-100'
-            }`;
-            statusElement.classList.remove('hidden');
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                copySuccess.classList.remove('hidden');
-                setTimeout(() => copySuccess.classList.add('hidden'), 3000);
-            }).catch(() => {
-                const tempInput = document.createElement('textarea');
-                tempInput.value = text;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempInput);
-                copySuccess.classList.remove('hidden');
-                setTimeout(() => copySuccess.classList.add('hidden'), 3000);
-            });
-        }
-
-        async function setupFCM() {
+        async function init() {
             try {
-                const currentUrl = window.location.href;
-                const swPath = `${window.location.origin}/firebase-messaging-sw.js`;
+                status.textContent = '1/4: Inicializando...';
+                const app = initializeApp(config);
                 
-                showDebug(`URL atual: ${currentUrl}<br>SW esperado em: ${swPath}`);
+                status.textContent = '2/4: Verificando suporte...';
+                if (!('serviceWorker' in navigator)) throw new Error('Sem suporte a SW');
+                if (!('Notification' in window)) throw new Error('Sem suporte a notificações');
 
-                updateStatus("Verificando suporte...");
-                
-                if (!('serviceWorker' in navigator)) {
-                    throw new Error("Service Workers não suportados.");
-                }
+                status.textContent = '3/4: Solicitando permissão...';
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') throw new Error('Permissão negada');
 
-                if (!('Notification' in window)) {
-                    throw new Error("Notificações não suportadas.");
-                }
-
-                updateStatus("Inicializando Firebase...");
-                const app = initializeApp(firebaseConfig);
-                
-                updateStatus("Obtendo Messaging...");
+                status.textContent = '4/4: Gerando token...';
                 const messaging = getMessaging(app);
+                const t = await getToken(messaging, { vapidKey: VAPID });
 
-                updateStatus("Solicitando permissão...");
-                const permission = await Notification.requestPermission();
-                
-                if (permission !== 'granted') {
-                    throw new Error("Permissão negada.");
-                }
-
-                updateStatus("Gerando token FCM...");
-                
-                const currentToken = await getToken(messaging, {
-                    vapidKey: VAPID_KEY
-                });
-
-                if (currentToken) {
-                    tokenElement.value = currentToken;
-                    copyButton.disabled = false;
-                    copyButton.onclick = () => copyToClipboard(currentToken);
-                    updateStatus("✅ Token gerado com sucesso!", 'info');
-                    console.log('✅ Token FCM:', currentToken);
+                if (t) {
+                    token.value = t;
+                    copy.disabled = false;
+                    copy.onclick = () => {
+                        navigator.clipboard.writeText(t);
+                        success.classList.remove('hidden');
+                        setTimeout(() => success.classList.add('hidden'), 2000);
+                    };
+                    status.textContent = '✅ Token gerado!';
+                    status.className = 'p-4 mb-4 text-sm bg-green-100 text-green-800 rounded-lg';
                 } else {
-                    throw new Error("Token vazio retornado.");
+                    throw new Error('Token vazio');
                 }
-
-            } catch (error) {
-                console.error("❌ Erro:", error);
-                updateStatus(`❌ ${error.message}`, 'error');
-                tokenElement.placeholder = "Erro. Verifique o console.";
-                
-                showDebug(`Erro: ${error.message}<br>Verifique se ${window.location.origin}/firebase-messaging-sw.js existe.`);
+            } catch (e) {
+                status.textContent = `❌ Erro: ${e.message}`;
+                status.className = 'p-4 mb-4 text-sm bg-red-100 text-red-800 rounded-lg';
+                console.error(e);
             }
         }
 
-        window.onload = setupFCM;
+        window.onload = init;
     </script>
 </body>
 </html>
