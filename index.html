@@ -35,63 +35,85 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
 
-        const config = {
-            apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
-            authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
-            projectId: "aqui-na-feira-4afd5",
-            storageBucket: "aqui-na-feira-4afd5.firebasestorage.app",
-            messagingSenderId: "997997717655",
-            appId: "1:997997717655:web:476e8272da6d65ddf7a1d2"
-        };
-        
-        const VAPID = "BBt7NXjEBXBxeZ2N_NdBOixxaLUtP2qgHwz65cIO-OFqI4UeZDnAU7jdxGAaamPloS2quvxorN7ZXZvbIMpmiK8";
+    const config = {
+        apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
+        authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
+        projectId: "aqui-na-feira-4afd5",
+        storageBucket: "aqui-na-feira-4afd5.firebasestorage.app",
+        messagingSenderId: "997997717655",
+        appId: "1:997997717655:web:476e8272da6d65ddf7a1d2"
+    };
+    
+    const VAPID = "BBt7NXjEBXBxeZ2N_NdBOixxaLUtP2qgHwz65cIO-OFqI4UeZDnAU7jdxGAaamPloS2quvxorN7ZXZvbIMpmiK8";
 
-        const status = document.getElementById('status');
-        const token = document.getElementById('token');
-        const copy = document.getElementById('copy');
-        const success = document.getElementById('success');
+    const status = document.getElementById('status');
+    const token = document.getElementById('token');
+    const copy = document.getElementById('copy');
+    const success = document.getElementById('success');
 
-        async function init() {
-            try {
-                status.textContent = '1/4: Inicializando...';
-                const app = initializeApp(config);
-                
-                status.textContent = '2/4: Verificando suporte...';
-                if (!('serviceWorker' in navigator)) throw new Error('Sem suporte a SW');
-                if (!('Notification' in window)) throw new Error('Sem suporte a notificações');
+    async function init() {
+        try {
+            status.textContent = '1/5: Inicializando...';
+            const app = initializeApp(config);
+            
+            status.textContent = '2/5: Verificando suporte...';
+            if (!('serviceWorker' in navigator)) throw new Error('Sem suporte a SW');
+            if (!('Notification' in window)) throw new Error('Sem suporte a notificações');
 
-                status.textContent = '3/4: Solicitando permissão...';
-                const perm = await Notification.requestPermission();
-                if (perm !== 'granted') throw new Error('Permissão negada');
+            // 🔥 REGISTRA O SW NO CAMINHO CORRETO
+            status.textContent = '3/5: Registrando Service Worker...';
+            const swPath = '/TOKEN-FCM/firebase-messaging-sw.js';
+            const registration = await navigator.serviceWorker.register(swPath, {
+                scope: '/TOKEN-FCM/'
+            });
+            
+            await navigator.serviceWorker.ready;
+            console.log('✅ SW registrado:', registration);
 
-                status.textContent = '4/4: Gerando token...';
-                const messaging = getMessaging(app);
-                const t = await getToken(messaging, { vapidKey: VAPID });
+            status.textContent = '4/5: Solicitando permissão...';
+            const perm = await Notification.requestPermission();
+            if (perm !== 'granted') throw new Error('Permissão negada');
 
-                if (t) {
-                    token.value = t;
-                    copy.disabled = false;
-                    copy.onclick = () => {
-                        navigator.clipboard.writeText(t);
-                        success.classList.remove('hidden');
-                        setTimeout(() => success.classList.add('hidden'), 2000);
-                    };
-                    status.textContent = '✅ Token gerado!';
-                    status.className = 'p-4 mb-4 text-sm bg-green-100 text-green-800 rounded-lg';
-                } else {
-                    throw new Error('Token vazio');
-                }
-            } catch (e) {
-                status.textContent = `❌ Erro: ${e.message}`;
-                status.className = 'p-4 mb-4 text-sm bg-red-100 text-red-800 rounded-lg';
-                console.error(e);
+            status.textContent = '5/5: Gerando token...';
+            const messaging = getMessaging(app);
+            const t = await getToken(messaging, { 
+                vapidKey: VAPID,
+                serviceWorkerRegistration: registration  // 🔥 PASSA O REGISTRATION
+            });
+
+            if (t) {
+                token.value = t;
+                copy.disabled = false;
+                copy.onclick = () => {
+                    navigator.clipboard.writeText(t).catch(() => {
+                        const tmp = document.createElement('textarea');
+                        tmp.value = t;
+                        document.body.appendChild(tmp);
+                        tmp.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tmp);
+                    });
+                    success.classList.remove('hidden');
+                    setTimeout(() => success.classList.add('hidden'), 2000);
+                };
+                status.textContent = '✅ Token gerado com sucesso!';
+                status.className = 'p-4 mb-4 text-sm bg-green-100 text-green-800 rounded-lg';
+                console.log('✅ Token:', t);
+            } else {
+                throw new Error('Token vazio retornado');
             }
+        } catch (e) {
+            status.textContent = `❌ Erro: ${e.message}`;
+            status.className = 'p-4 mb-4 text-sm bg-red-100 text-red-800 rounded-lg';
+            token.placeholder = 'Erro. Verifique o console.';
+            console.error('❌ Erro completo:', e);
         }
+    }
 
-        window.onload = init;
-    </script>
+    window.onload = init;
+</script>
 </body>
 </html>
