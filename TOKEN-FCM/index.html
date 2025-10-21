@@ -1,0 +1,116 @@
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
+        authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
+        projectId: "aqui-na-feira-4afd5",
+        storageBucket: "aqui-na-feira-4afd5.firebasestorage.app",
+        messagingSenderId: "997997717655",
+        appId: "1:997997717655:web:476e8272da6d65ddf7a1d2",
+        measurementId: "G-ZFJBGCEZVD"
+    };
+    
+    const VAPID_KEY = "BBt7NXjEBXBxeZ2N_NdBOixxaLUtP2qgHwz65cIO-OFqI4UeZDnAU7jdxGAaamPloS2quvxorN7ZXZvbIMpmiK8";
+
+    const tokenElement = document.getElementById('fcm-token');
+    const statusElement = document.getElementById('status-message');
+    const copyButton = document.getElementById('copy-button');
+    const copySuccess = document.getElementById('copy-success');
+
+    function updateStatus(message, type = 'info') {
+        statusElement.textContent = `Status: ${message}`;
+        statusElement.className = `p-3 mb-4 text-sm font-medium rounded-lg ${
+            type === 'error' ? 'text-red-700 bg-red-100' : 'text-blue-700 bg-blue-100'
+        }`;
+        statusElement.classList.remove('hidden');
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            copySuccess.classList.remove('hidden');
+            setTimeout(() => copySuccess.classList.add('hidden'), 3000);
+        }).catch(err => {
+            console.error('Falha ao copiar:', err);
+            // Fallback para navegadores antigos
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            copySuccess.classList.remove('hidden');
+            setTimeout(() => copySuccess.classList.add('hidden'), 3000);
+        });
+    }
+
+    async function setupFCM() {
+        try {
+            updateStatus("Verificando suporte...");
+            
+            // Verifica suporte a Service Workers
+            if (!('serviceWorker' in navigator)) {
+                throw new Error("Service Workers não são suportados neste navegador.");
+            }
+
+            // Verifica suporte a notificações
+            if (!('Notification' in window)) {
+                throw new Error("Notificações não são suportadas neste navegador.");
+            }
+
+            updateStatus("Inicializando Firebase...");
+            const app = initializeApp(firebaseConfig);
+            
+            updateStatus("Obtendo serviço de Messaging...");
+            const messaging = getMessaging(app);
+
+            updateStatus("Solicitando permissão de notificação...");
+            const permission = await Notification.requestPermission();
+            
+            if (permission !== 'granted') {
+                throw new Error("Permissão de notificação negada. Por favor, permita notificações nas configurações do navegador.");
+            }
+
+            updateStatus("Gerando token FCM...");
+            console.log('Tentando obter token com VAPID:', VAPID_KEY);
+            
+            // O Firebase registra automaticamente o firebase-messaging-sw.js na raiz
+            const currentToken = await getToken(messaging, {
+                vapidKey: VAPID_KEY
+            });
+
+            if (currentToken) {
+                tokenElement.value = currentToken;
+                copyButton.disabled = false;
+                copyButton.onclick = () => copyToClipboard(currentToken);
+                updateStatus("✅ Token FCM gerado com sucesso!", 'info');
+                console.log('✅ Token FCM obtido:', currentToken);
+            } else {
+                throw new Error("Não foi possível obter o token FCM. Verifique se as configurações do Firebase estão corretas.");
+            }
+
+        } catch (error) {
+            console.error("❌ Erro ao configurar FCM:", error);
+            updateStatus(`❌ Erro: ${error.message}`, 'error');
+            tokenElement.placeholder = "Erro ao gerar token. Verifique o console.";
+        }
+    }
+
+    // Limpa Service Workers antigos antes de iniciar (útil para debug)
+    async function cleanupOldServiceWorkers() {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+            // Remove apenas SWs que não sejam o do Firebase
+            if (!registration.active?.scriptURL.includes('firebase-messaging-sw.js')) {
+                await registration.unregister();
+                console.log('🧹 SW antigo removido:', registration.scope);
+            }
+        }
+    }
+
+    window.onload = async () => {
+        await cleanupOldServiceWorkers();
+        await setupFCM();
+    };
+</script>
