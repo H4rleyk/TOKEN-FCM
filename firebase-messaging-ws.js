@@ -1,52 +1,89 @@
 /**
- * Arquivo Service Worker para o Firebase Cloud Messaging (FCM).
- * Este arquivo DEVE estar na raiz do seu site para que o FCM funcione corretamente.
+ * Service Worker para Firebase Cloud Messaging (FCM)
+ * IMPORTANTE: Este arquivo deve estar acessível no caminho /TOKEN-FCM/firebase-messaging-sw.js
  */
 
-// Importa os módulos do Firebase necessários
-importScripts('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js');
-importScripts('https://www.gstatic.com/firebasejs/11.6.1/firebase-messaging.js');
+// ============================================
+// VERSÃO COMPATÍVEL (Firebase v9 compat mode)
+// ============================================
 
-// Configuração do seu projeto Firebase (SUBSTITUA ESTE OBJETO!)
+// Importa a versão "compat" do Firebase v9 que mantém a API antiga
+importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
+
+// Configuração do Firebase
 const firebaseConfig = {
-  // ATENÇÃO: COPIE AQUI O JSON COMPLETO DA SUA CONFIGURAÇÃO
-          apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
-          authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
-          projectId: "aqui-na-feira-4afd5",
-          storageBucket: "aqui-na-feira-4afd5.firebasestorage.app",
-          messagingSenderId: "997997717655",
-          appId: "1:997997717655:web:476e8272da6d65ddf7a1d2",
-          measurementId: "G-ZFJBGCEZVD"
+  apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
+  authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
+  projectId: "aqui-na-feira-4afd5",
+  storageBucket: "aqui-na-feira-4afd5.firebasestorage.app",
+  messagingSenderId: "997997717655",
+  appId: "1:997997717655:web:476e8272da6d65ddf7a1d2",
+  measurementId: "G-ZFJBGCEZVD"
 };
 
-// Inicializa o Firebase no Service Worker
-const app = firebase.initializeApp(firebaseConfig);
+// Inicializa o Firebase
+firebase.initializeApp(firebaseConfig);
 
-// Obtém a instância do Firebase Messaging
+// Obtém a instância do Messaging
 const messaging = firebase.messaging();
-// ------------------------------------------------------------------
-// Lógica de Notificação
-// ------------------------------------------------------------------
 
-// Trata a mensagem quando o app está em segundo plano (ou fechado)
+// ============================================
+// Manipula mensagens em segundo plano
+// ============================================
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Mensagem de segundo plano recebida', payload);
+  console.log('[SW] Mensagem recebida em segundo plano:', payload);
   
-  // Customiza a notificação que será exibida ao usuário
-  const notificationTitle = payload.notification.title || 'Nova Notificação';
+  const notificationTitle = payload.notification?.title || 'Nova Notificação';
   const notificationOptions = {
-    body: payload.notification.body || 'Você tem uma nova mensagem.',
-    icon: '/favicon.ico' // Use um ícone real para o seu app
-    // Você pode adicionar mais opções aqui (badge, image, click_action, etc.)
+    body: payload.notification?.body || 'Você tem uma nova mensagem',
+    icon: payload.notification?.icon || '/favicon.ico',
+    badge: '/badge-icon.png', // Ícone pequeno (opcional)
+    data: payload.data || {}, // Dados customizados
+    tag: payload.data?.tag || 'default-tag', // Agrupa notificações
+    requireInteraction: false, // true = notificação fica até usuário interagir
   };
 
-  // Exibe a notificação
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Trata cliques na notificação (opcional)
+// ============================================
+// Manipula cliques na notificação
+// ============================================
 self.addEventListener('notificationclick', (event) => {
-  console.log('[Service Worker] Notificação clicada', event);
-  // Você pode abrir uma URL específica aqui, se necessário.
+  console.log('[SW] Notificação clicada:', event.notification);
+  
   event.notification.close();
+  
+  // Abre uma URL específica ao clicar (opcional)
+  const urlToOpen = event.notification.data?.url || '/';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUnmanaged: true })
+      .then((clientList) => {
+        // Verifica se já existe uma janela aberta com a URL
+        for (const client of clientList) {
+          if (client.url === urlToOpen && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // Se não houver, abre uma nova janela
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+  );
+});
+
+// ============================================
+// Log de instalação (opcional - debug)
+// ============================================
+self.addEventListener('install', (event) => {
+  console.log('[SW] Service Worker instalado');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Service Worker ativado');
+  event.waitUntil(clients.claim());
 });
