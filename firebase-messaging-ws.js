@@ -24,8 +24,6 @@ const app = firebase.initializeApp(firebaseConfig);
 
 // Obtém a instância do Firebase Messaging
 const messaging = firebase.messaging();
-messaging.useServiceWorker(new URL('https://h4rleyk.github.io/TOKEN-FCM/firebase-messaging-sw.js'));
-
 // ------------------------------------------------------------------
 // Lógica de Notificação
 // ------------------------------------------------------------------
