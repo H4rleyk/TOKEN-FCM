@@ -1,0 +1,43 @@
+Coletor de Token FCM (Firebase Cloud Messaging)
+
+Este é um aplicativo de página única (SPA) em HTML/CSS/JS projetado para rodar em qualquer navegador (desktop ou mobile/emulador) com o objetivo de gerar e exibir um Token FCM válido para testes de push notifications.
+
+Ele é essencial para testar o endpoint de envio de notificações na API NestJS/Prisma.
+
+🛠️ Configuração Necessária
+
+Antes de fazer o deploy (ou commit), você DEVE editar o arquivo index.html:
+
+firebaseConfig: Substituir o JSON de placeholder pelas configurações do seu projeto Firebase (obtidas em Project Settings > General > Your apps).
+
+VAPID_KEY: Substituir a string de placeholder pela Chave Pública VAPID (obtida em Project Settings > Cloud Messaging > Web push certificates).
+
+🚀 Deploy com GitHub Pages
+
+Para hospedar esta aplicação gratuitamente e torná-la acessível em qualquer lugar:
+
+Faça o Upload: Envie o arquivo index.html (e apenas ele) para a raiz do seu repositório GitHub.
+
+Acesse as Configurações do Repositório: No GitHub, clique na aba Settings (Configurações).
+
+Vá para Pages: No menu lateral, clique em Pages (Páginas).
+
+Configure a Fonte:
+
+Em "Source" ou "Branch", selecione a branch main (ou master).
+
+Certifique-se de que a pasta de publicação está definida como / (root).
+
+Salve: Clique em Save (Salvar).
+
+O GitHub levará alguns minutos para gerar o site. A URL de acesso será exibida na mesma página, geralmente no formato: https://[seu-usuario].github.io/[seu-repositorio]/
+
+📱 Uso em Dispositivos Móveis/Emuladores
+
+Acesse a URL do GitHub Pages no navegador (Chrome) do seu dispositivo/emulador.
+
+Importante: Clique em "Permitir" quando o navegador solicitar permissão para enviar notificações.
+
+O Token FCM será gerado e exibido. Copie-o e use-o na sua requisição API.
+
+Isso permitirá que você e qualquer testador obtenham tokens válidos para depurar o fluxo de notificações da API.
