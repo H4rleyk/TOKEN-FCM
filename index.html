@@ -1,116 +1,173 @@
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-    import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coletor de Token FCM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
-        authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
-        projectId: "aqui-na-feira-4afd5",
-        storageBucket: "aqui-na-feira-4afd5.firebasestorage.app",
-        messagingSenderId: "997997717655",
-        appId: "1:997997717655:web:476e8272da6d65ddf7a1d2",
-        measurementId: "G-ZFJBGCEZVD"
-    };
-    
-    const VAPID_KEY = "BBt7NXjEBXBxeZ2N_NdBOixxaLUtP2qgHwz65cIO-OFqI4UeZDnAU7jdxGAaamPloS2quvxorN7ZXZvbIMpmiK8";
+    <div id="app-container" class="w-full max-w-xl bg-white shadow-2xl rounded-xl p-6 md:p-8">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-2 text-center">
+            <svg class="w-8 h-8 inline-block text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                </path>
+            </svg>
+            Coletor FCM
+        </h1>
+        <p class="text-gray-500 text-center mb-6">
+            Obtenha e copie o token para teste de push notifications.
+        </p>
 
-    const tokenElement = document.getElementById('fcm-token');
-    const statusElement = document.getElementById('status-message');
-    const copyButton = document.getElementById('copy-button');
-    const copySuccess = document.getElementById('copy-success');
+        <div id="status-message" class="p-3 mb-4 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hidden">
+            Status: Iniciando...
+        </div>
 
-    function updateStatus(message, type = 'info') {
-        statusElement.textContent = `Status: ${message}`;
-        statusElement.className = `p-3 mb-4 text-sm font-medium rounded-lg ${
-            type === 'error' ? 'text-red-700 bg-red-100' : 'text-blue-700 bg-blue-100'
-        }`;
-        statusElement.classList.remove('hidden');
-    }
+        <div class="space-y-4">
+            <label for="fcm-token" class="block text-sm font-medium text-gray-700">Token FCM:</label>
+            <textarea id="fcm-token" readonly rows="4" 
+                class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 break-all font-mono text-xs" 
+                placeholder="Aguardando token..."></textarea>
 
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            copySuccess.classList.remove('hidden');
-            setTimeout(() => copySuccess.classList.add('hidden'), 3000);
-        }).catch(err => {
-            console.error('Falha ao copiar:', err);
-            // Fallback para navegadores antigos
-            const tempInput = document.createElement('textarea');
-            tempInput.value = text;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            copySuccess.classList.remove('hidden');
-            setTimeout(() => copySuccess.classList.add('hidden'), 3000);
-        });
-    }
-
-    async function setupFCM() {
-        try {
-            updateStatus("Verificando suporte...");
+            <button id="copy-button" 
+                class="w-full flex items-center justify-center px-5 py-3 text-base font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed" 
+                disabled>
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m-3 9">
+                    </path>
+                </svg>
+                Copiar Token
+            </button>
             
-            // Verifica suporte a Service Workers
-            if (!('serviceWorker' in navigator)) {
-                throw new Error("Service Workers não são suportados neste navegador.");
-            }
+            <div id="copy-success" class="mt-2 p-3 text-sm font-medium text-green-700 bg-green-100 rounded-lg hidden text-center">
+                ✅ Token copiado com sucesso!
+            </div>
 
-            // Verifica suporte a notificações
-            if (!('Notification' in window)) {
-                throw new Error("Notificações não são suportadas neste navegador.");
-            }
+            <div id="debug-info" class="mt-4 p-3 text-xs font-mono text-gray-600 bg-gray-100 rounded-lg hidden">
+                <strong>Debug Info:</strong><br>
+                <span id="debug-text"></span>
+            </div>
+        </div>
+    </div>
 
-            updateStatus("Inicializando Firebase...");
-            const app = initializeApp(firebaseConfig);
-            
-            updateStatus("Obtendo serviço de Messaging...");
-            const messaging = getMessaging(app);
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
 
-            updateStatus("Solicitando permissão de notificação...");
-            const permission = await Notification.requestPermission();
-            
-            if (permission !== 'granted') {
-                throw new Error("Permissão de notificação negada. Por favor, permita notificações nas configurações do navegador.");
-            }
+        const firebaseConfig = {
+            apiKey: "AIzaSyA2_VAJZir5DpatOgfByp7oEzfM2VEbl-g",
+            authDomain: "aqui-na-feira-4afd5.firebaseapp.com",
+            projectId: "aqui-na-feira-4afd5",
+            storageBucket: "aqui-na-feira-4afd5.firebasestorage.app",
+            messagingSenderId: "997997717655",
+            appId: "1:997997717655:web:476e8272da6d65ddf7a1d2",
+            measurementId: "G-ZFJBGCEZVD"
+        };
+        
+        const VAPID_KEY = "BBt7NXjEBXBxeZ2N_NdBOixxaLUtP2qgHwz65cIO-OFqI4UeZDnAU7jdxGAaamPloS2quvxorN7ZXZvbIMpmiK8";
 
-            updateStatus("Gerando token FCM...");
-            console.log('Tentando obter token com VAPID:', VAPID_KEY);
-            
-            // O Firebase registra automaticamente o firebase-messaging-sw.js na raiz
-            const currentToken = await getToken(messaging, {
-                vapidKey: VAPID_KEY
+        const tokenElement = document.getElementById('fcm-token');
+        const statusElement = document.getElementById('status-message');
+        const copyButton = document.getElementById('copy-button');
+        const copySuccess = document.getElementById('copy-success');
+        const debugInfo = document.getElementById('debug-info');
+        const debugText = document.getElementById('debug-text');
+
+        function showDebug(info) {
+            debugText.innerHTML = info;
+            debugInfo.classList.remove('hidden');
+        }
+
+        function updateStatus(message, type = 'info') {
+            statusElement.textContent = `Status: ${message}`;
+            statusElement.className = `p-3 mb-4 text-sm font-medium rounded-lg ${
+                type === 'error' ? 'text-red-700 bg-red-100' : 'text-blue-700 bg-blue-100'
+            }`;
+            statusElement.classList.remove('hidden');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                copySuccess.classList.remove('hidden');
+                setTimeout(() => copySuccess.classList.add('hidden'), 3000);
+            }).catch(() => {
+                const tempInput = document.createElement('textarea');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                copySuccess.classList.remove('hidden');
+                setTimeout(() => copySuccess.classList.add('hidden'), 3000);
             });
-
-            if (currentToken) {
-                tokenElement.value = currentToken;
-                copyButton.disabled = false;
-                copyButton.onclick = () => copyToClipboard(currentToken);
-                updateStatus("✅ Token FCM gerado com sucesso!", 'info');
-                console.log('✅ Token FCM obtido:', currentToken);
-            } else {
-                throw new Error("Não foi possível obter o token FCM. Verifique se as configurações do Firebase estão corretas.");
-            }
-
-        } catch (error) {
-            console.error("❌ Erro ao configurar FCM:", error);
-            updateStatus(`❌ Erro: ${error.message}`, 'error');
-            tokenElement.placeholder = "Erro ao gerar token. Verifique o console.";
         }
-    }
 
-    // Limpa Service Workers antigos antes de iniciar (útil para debug)
-    async function cleanupOldServiceWorkers() {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-            // Remove apenas SWs que não sejam o do Firebase
-            if (!registration.active?.scriptURL.includes('firebase-messaging-sw.js')) {
-                await registration.unregister();
-                console.log('🧹 SW antigo removido:', registration.scope);
+        async function setupFCM() {
+            try {
+                const currentUrl = window.location.href;
+                const swPath = `${window.location.origin}/firebase-messaging-sw.js`;
+                
+                showDebug(`URL atual: ${currentUrl}<br>SW esperado em: ${swPath}`);
+
+                updateStatus("Verificando suporte...");
+                
+                if (!('serviceWorker' in navigator)) {
+                    throw new Error("Service Workers não suportados.");
+                }
+
+                if (!('Notification' in window)) {
+                    throw new Error("Notificações não suportadas.");
+                }
+
+                updateStatus("Inicializando Firebase...");
+                const app = initializeApp(firebaseConfig);
+                
+                updateStatus("Obtendo Messaging...");
+                const messaging = getMessaging(app);
+
+                updateStatus("Solicitando permissão...");
+                const permission = await Notification.requestPermission();
+                
+                if (permission !== 'granted') {
+                    throw new Error("Permissão negada.");
+                }
+
+                updateStatus("Gerando token FCM...");
+                
+                const currentToken = await getToken(messaging, {
+                    vapidKey: VAPID_KEY
+                });
+
+                if (currentToken) {
+                    tokenElement.value = currentToken;
+                    copyButton.disabled = false;
+                    copyButton.onclick = () => copyToClipboard(currentToken);
+                    updateStatus("✅ Token gerado com sucesso!", 'info');
+                    console.log('✅ Token FCM:', currentToken);
+                } else {
+                    throw new Error("Token vazio retornado.");
+                }
+
+            } catch (error) {
+                console.error("❌ Erro:", error);
+                updateStatus(`❌ ${error.message}`, 'error');
+                tokenElement.placeholder = "Erro. Verifique o console.";
+                
+                showDebug(`Erro: ${error.message}<br>Verifique se ${window.location.origin}/firebase-messaging-sw.js existe.`);
             }
         }
-    }
 
-    window.onload = async () => {
-        await cleanupOldServiceWorkers();
-        await setupFCM();
-    };
-</script>
+        window.onload = setupFCM;
+    </script>
+</body>
+</html>
