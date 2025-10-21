@@ -39,7 +39,6 @@
         </div>
     </div>
 
-    <!-- IMPORTANTE: Usar versão 9.22.1 COMPAT para ter mais controle -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js"></script>
 
@@ -69,54 +68,56 @@
         async function init() {
             try {
                 const currentPath = window.location.pathname;
-                const swFullPath = `${currentPath}firebase-messaging-sw.js`;
+                const swPath = './firebase-messaging-sw.js'; // ← CAMINHO RELATIVO
                 
-                debug(`🌐 URL atual: ${window.location.href}`);
-                debug(`📂 Caminho SW: ${swFullPath}`);
+                debug(`🌐 URL: ${window.location.href}`);
+                debug(`📂 SW Path: ${swPath}`);
 
-                status.textContent = '1/5: Verificando suporte...';
+                status.textContent = '1/6: Verificando suporte...';
                 if (!('serviceWorker' in navigator)) throw new Error('Sem suporte a SW');
                 if (!('Notification' in window)) throw new Error('Sem suporte a notificações');
                 debug('✅ Suporte OK');
 
-                // CRÍTICO: Registrar o SW MANUALMENTE antes do Firebase
-                status.textContent = '2/5: Registrando Service Worker...';
-                debug(`🔧 Registrando SW em: ${swFullPath}`);
-                
                 // Remove SWs antigos
+                status.textContent = '2/6: Limpando cache...';
                 const oldRegs = await navigator.serviceWorker.getRegistrations();
                 for (const reg of oldRegs) {
                     await reg.unregister();
                     debug(`🗑️ SW removido: ${reg.scope}`);
                 }
 
-                const registration = await navigator.serviceWorker.register(swFullPath, {
-                    scope: currentPath,
-                    updateViaCache: 'none'
+                // Registra o SW ANTES de inicializar o Firebase
+                status.textContent = '3/6: Registrando Service Worker...';
+                debug(`🔧 Registrando: ${swPath}`);
+                
+                const registration = await navigator.serviceWorker.register(swPath, {
+                    scope: './'
                 });
                 
                 debug(`✅ SW registrado! Scope: ${registration.scope}`);
+                debug(`SW URL: ${registration.active?.scriptURL || 'aguardando ativação...'}`);
+                
+                // CRÍTICO: Aguarda o SW estar completamente ativo
                 await navigator.serviceWorker.ready;
                 debug('✅ SW ativo e pronto!');
 
-                status.textContent = '3/5: Inicializando Firebase...';
+                status.textContent = '4/6: Inicializando Firebase...';
                 firebase.initializeApp(config);
                 debug('✅ Firebase inicializado');
 
-                status.textContent = '4/5: Solicitando permissão...';
+                status.textContent = '5/6: Solicitando permissão...';
                 const perm = await Notification.requestPermission();
                 if (perm !== 'granted') throw new Error('Permissão negada');
                 debug('✅ Permissão concedida');
 
-                status.textContent = '5/5: Gerando token...';
-                
-                // Usa a API compat que respeita o SW já registrado
+                status.textContent = '6/6: Gerando token...';
                 const messaging = firebase.messaging();
                 
-                // Passa o registration explicitamente
-                messaging.useServiceWorker(registration);
-                
-                const t = await messaging.getToken({ vapidKey: VAPID });
+                // O Firebase vai usar o SW que JÁ ESTÁ REGISTRADO
+                const t = await messaging.getToken({ 
+                    vapidKey: VAPID,
+                    serviceWorkerRegistration: registration // ← PASSA O REGISTRATION
+                });
 
                 if (t) {
                     token.value = t;
@@ -133,18 +134,19 @@
                         success.classList.remove('hidden');
                         setTimeout(() => success.classList.add('hidden'), 2000);
                     };
-                    status.textContent = '✅ TOKEN GERADO COM SUCESSO!';
+                    status.textContent = '✅ TOKEN GERADO!';
                     status.className = 'p-4 mb-4 text-sm bg-green-100 text-green-800 rounded-lg';
-                    debug('✅ Token obtido!');
-                    debug(`Token: ${t.substring(0, 50)}...`);
+                    debug('✅✅✅ TOKEN OBTIDO COM SUCESSO! ✅✅✅');
+                    debug(`Primeiros 50 caracteres: ${t.substring(0, 50)}...`);
                 } else {
-                    throw new Error('Token vazio retornado');
+                    throw new Error('Token vazio');
                 }
             } catch (e) {
                 status.textContent = `❌ ERRO: ${e.message}`;
                 status.className = 'p-4 mb-4 text-sm bg-red-100 text-red-800 rounded-lg';
                 debug(`❌ ERRO: ${e.message}`);
-                if (e.stack) debug(`Stack: ${e.stack.substring(0, 200)}`);
+                if (e.code) debug(`Código: ${e.code}`);
+                if (e.stack) debug(`Stack: ${e.stack.substring(0, 300)}`);
                 console.error('Erro completo:', e);
             }
         }
